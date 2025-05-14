@@ -60,6 +60,20 @@
       background-color: #17a2b8;
       color: white;
     }
+    .warning {
+      color: #dc3545;
+      font-weight: bold;
+      padding: 10px;
+      background-color: #fff3f3;
+      border-radius: 5px;
+    }
+    .success {
+      color: #28a745;
+      font-weight: bold;
+      padding: 10px;
+      background-color: #f0fff4;
+      border-radius: 5px;
+    }
   </style>
 </head>
 <body>
@@ -70,7 +84,7 @@
   <input type="text" id="name" value="Syed Rashad"><br>
 
   <label for="corpus">Initial Corpus (₹):</label>
-  <input type="number" id="corpus" value="100000000"><br>
+  <input type="number" id="corpus" value="10000000"><br>
 
   <label for="return">Annual Return (%):</label>
   <input type="number" id="return" value="12"><br>
@@ -106,53 +120,103 @@
 
       let balance = corpus;
       let data = [];
+      let monthlyData = [];
       let months = 0;
       let adjustedWithdrawal = withdrawal;
+      let exhausted = false;
+      let exhaustedMonth = 0;
 
-      while (balance > 0 && months < years * 12) {
-        balance *= 1 + monthlyReturn;
+      // Calculate monthly values
+      for (let i = 0; i < years * 12; i++) {
+        if (balance <= 0) {
+          exhausted = true;
+          exhaustedMonth = i;
+          break;
+        }
+        
+        // Apply return first
+        balance *= (1 + monthlyReturn);
+        
+        // Then subtract withdrawal
         balance -= adjustedWithdrawal;
-        data.push(balance > 0 ? balance : 0);
-        adjustedWithdrawal *= 1 + monthlyInflation;
+        
+        // Record data
+        data.push(Math.max(0, balance));
+        monthlyData.push({
+          month: i + 1,
+          balance: balance,
+          withdrawal: adjustedWithdrawal
+        });
+        
+        // Adjust withdrawal for inflation
+        adjustedWithdrawal *= (1 + monthlyInflation);
         months++;
       }
 
-      const exhaustedYears = (months / 12).toFixed(1);
+      const exhaustedYears = exhausted ? (exhaustedMonth / 12).toFixed(1) : null;
+      const finalBalance = monthlyData.length > 0 ? monthlyData[monthlyData.length - 1].balance : 0;
+
+      // Generate report HTML
+      let statusHTML = '';
+      if (exhausted) {
+        statusHTML = `<div class="warning">Corpus exhausted in ${exhaustedYears} years (month ${exhaustedMonth}).</div>`;
+      } else {
+        statusHTML = `<div class="success">Corpus sustains for full ${years} years with final balance of ₹${finalBalance.toLocaleString('en-IN')}</div>`;
+      }
 
       const reportHTML = `
         <h2>Systematic Withdrawal Plan Report</h2>
         <p><strong>Customer Name:</strong> ${name}</p>
-        <p><strong>Initial Corpus:</strong> ₹${corpus.toLocaleString()}</p>
+        <p><strong>Initial Corpus:</strong> ₹${corpus.toLocaleString('en-IN')}</p>
         <p><strong>Annual Return:</strong> ${(annualReturn * 100).toFixed(2)}%</p>
-        <p><strong>Monthly Withdrawal:</strong> ₹${withdrawal.toLocaleString()}</p>
+        <p><strong>Initial Monthly Withdrawal:</strong> ₹${withdrawal.toLocaleString('en-IN')}</p>
         <p><strong>Inflation Rate:</strong> ${(inflation * 100).toFixed(2)}%</p>
         <p><strong>Duration:</strong> ${years} years</p>
-        <p style="color: red;"><strong>Corpus exhausted in ${exhaustedYears} years.</strong></p>
+        
+        ${statusHTML}
 
+        <h3>Monthly Projections (First 12 Months)</h3>
         <table>
-          <tr><th>Field</th><th>Value</th></tr>
-          <tr><td>Initial Corpus</td><td>₹${corpus.toLocaleString()}</td></tr>
-          <tr><td>Annual Return</td><td>${(annualReturn * 100).toFixed(2)}%</td></tr>
-          <tr><td>Monthly Withdrawal</td><td>₹${withdrawal.toLocaleString()}</td></tr>
-          <tr><td>Inflation Rate</td><td>${(inflation * 100).toFixed(2)}%</td></tr>
-          <tr><td>Duration</td><td>${years} years</td></tr>
+          <tr>
+            <th>Month</th>
+            <th>Withdrawal (₹)</th>
+            <th>Balance (₹)</th>
+          </tr>
+          ${monthlyData.slice(0, 12).map(month => `
+            <tr>
+              <td>${month.month}</td>
+              <td>₹${month.withdrawal.toFixed(2).toLocaleString('en-IN')}</td>
+              <td>₹${month.balance.toFixed(2).toLocaleString('en-IN')}</td>
+            </tr>
+          `).join('')}
         </table>
       `;
 
       document.getElementById('report').innerHTML = reportHTML;
       document.getElementById('reportSection').style.display = 'block';
 
+      // Generate chart
       const labels = Array.from({length: months}, (_, i) => `Month ${i+1}`);
       const chartData = {
         labels: labels,
-        datasets: [{
-          label: 'Corpus Balance Over Time',
-          data: data,
-          borderColor: '#007BFF',
-          backgroundColor: 'rgba(0,123,255,0.1)',
-          fill: true,
-          tension: 0.1
-        }]
+        datasets: [
+          {
+            label: 'Corpus Balance',
+            data: data,
+            borderColor: '#007BFF',
+            backgroundColor: 'rgba(0, 123, 255, 0.1)',
+            fill: true,
+            tension: 0.1
+          },
+          {
+            label: 'Withdrawals',
+            data: monthlyData.map(m => m.withdrawal),
+            borderColor: '#28a745',
+            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+            fill: true,
+            tension: 0.1
+          }
+        ]
       };
 
       const ctx = document.getElementById('corpusChart').getContext('2d');
@@ -163,14 +227,21 @@
         options: {
           responsive: true,
           plugins: {
-            legend: { display: false }
+            legend: { position: 'top' },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `${context.dataset.label}: ₹${context.raw.toFixed(2).toLocaleString('en-IN')}`;
+                }
+              }
+            }
           },
           scales: {
             y: {
               beginAtZero: true,
               ticks: {
                 callback: function(value) {
-                  return '₹' + value.toLocaleString();
+                  return '₹' + value.toLocaleString('en-IN');
                 }
               }
             }
@@ -196,16 +267,30 @@
       const primaryColor = '#17a2b8';
       const secondaryColor = '#6c757d';
       const accentColor = '#dc3545';
+      const successColor = '#28a745';
 
       // Get values
       const name = document.getElementById('name').value;
-      const corpus = parseFloat(document.getElementById('corpus').value).toLocaleString();
-      const annualReturn = document.getElementById('return').value;
-      const withdrawal = parseFloat(document.getElementById('withdrawal').value).toLocaleString();
-      const inflation = document.getElementById('inflation').value;
-      const years = document.getElementById('years').value;
+      const corpus = parseFloat(document.getElementById('corpus').value);
+      const annualReturn = parseFloat(document.getElementById('return').value);
+      const withdrawal = parseFloat(document.getElementById('withdrawal').value);
+      const inflation = parseFloat(document.getElementById('inflation').value);
+      const years = parseInt(document.getElementById('years').value);
       const reportText = document.getElementById('report').innerText;
-      const exhaustedLine = reportText.split('\n').find(line => line.includes('Corpus exhausted'));
+      
+      // Extract exhaustion info from report
+      let exhaustedInfo = '';
+      let statusColor = successColor;
+      const exhaustionMatch = reportText.match(/Corpus exhausted in (\d+\.?\d*) years/);
+      if (exhaustionMatch) {
+        exhaustedInfo = `Corpus exhausted in ${exhaustionMatch[1]} years`;
+        statusColor = accentColor;
+      } else {
+        const finalBalanceMatch = reportText.match(/final balance of ₹([\d,]+)/);
+        if (finalBalanceMatch) {
+          exhaustedInfo = `Corpus sustains for full ${years} years (Final balance: ₹${finalBalanceMatch[1]})`;
+        }
+      }
 
       // Add header
       doc.setFillColor(23, 162, 184);
@@ -265,30 +350,37 @@
       doc.setFont('helvetica', 'bold');
       doc.text("Initial Corpus (₹):", column1, y);
       doc.setFont('helvetica', 'normal');
-      doc.text(corpus, column1 + 40, y);
+      doc.text(corpus.toLocaleString('en-IN'), column1 + 40, y);
       
       doc.setFont('helvetica', 'bold');
       doc.text("Annual Return (%):", column2, y);
       doc.setFont('helvetica', 'normal');
-      doc.text(annualReturn, column2 + 40, y);
+      doc.text(annualReturn.toFixed(2), column2 + 40, y);
       y += 7;
 
       doc.setFont('helvetica', 'bold');
       doc.text("Monthly Withdrawal (₹):", column1, y);
       doc.setFont('helvetica', 'normal');
-      doc.text(withdrawal, column1 + 40, y);
+      doc.text(withdrawal.toLocaleString('en-IN'), column1 + 40, y);
       
       doc.setFont('helvetica', 'bold');
       doc.text("Inflation Rate (%):", column2, y);
       doc.setFont('helvetica', 'normal');
-      doc.text(inflation, column2 + 40, y);
+      doc.text(inflation.toFixed(2), column2 + 40, y);
       y += 7;
 
       doc.setFont('helvetica', 'bold');
       doc.text("Duration (Years):", column1, y);
       doc.setFont('helvetica', 'normal');
-      doc.text(years, column1 + 40, y);
+      doc.text(years.toString(), column1 + 40, y);
       y += 15;
+
+      // Add status
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(statusColor === successColor ? [40, 167, 69] : [220, 53, 69]);
+      doc.text(exhaustedInfo, 14, y);
+      y += 10;
 
       // Add chart
       const canvas = document.getElementById('corpusChart');
@@ -307,17 +399,40 @@
       doc.addImage(chartImg, 'PNG', 15, y, 180, 80);
       y += 90;
 
-      // Add summary
-      if (exhaustedLine) {
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(220, 53, 69); // Red color for important note
-        doc.text("Important Note:", 14, y);
+      // Add sample monthly data
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(23, 162, 184);
+      doc.text("Sample Monthly Projections", 14, y);
+      y += 7;
+
+      doc.line(14, y, 196, y);
+      y += 10;
+
+      // Add table headers
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text("Month", 20, y);
+      doc.text("Withdrawal (₹)", 60, y);
+      doc.text("Balance (₹)", 120, y);
+      y += 7;
+
+      // Get first 12 months data from the report
+      const reportDiv = document.getElementById('report');
+      const rows = reportDiv.querySelectorAll('table tr');
+      for (let i = 1; i < Math.min(13, rows.length); i++) {
+        const cells = rows[i].querySelectorAll('td');
+        doc.setFont('helvetica', 'normal');
+        doc.text(cells[0].textContent, 20, y);
+        doc.text(cells[1].textContent, 60, y);
+        doc.text(cells[2].textContent, 120, y);
         y += 7;
         
-        doc.setFont('helvetica', 'normal');
-        doc.text(exhaustedLine, 14, y);
-        y += 10;
+        // Add new page if needed
+        if (y > 250 && i < rows.length - 1) {
+          doc.addPage();
+          y = 20;
+        }
       }
 
       // Add footer
