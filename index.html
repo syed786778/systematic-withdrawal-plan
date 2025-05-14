@@ -268,6 +268,8 @@
       const secondaryColor = '#6c757d';
       const accentColor = '#dc3545';
       const successColor = '#28a745';
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const margin = 15;
 
       // Get values
       const name = document.getElementById('name').value;
@@ -276,172 +278,169 @@
       const withdrawal = parseFloat(document.getElementById('withdrawal').value);
       const inflation = parseFloat(document.getElementById('inflation').value);
       const years = parseInt(document.getElementById('years').value);
-      const reportText = document.getElementById('report').innerText;
       
-      // Extract exhaustion info from report
-      let exhaustedInfo = '';
-      let statusColor = successColor;
-      const exhaustionMatch = reportText.match(/Corpus exhausted in (\d+\.?\d*) years/);
-      if (exhaustionMatch) {
-        exhaustedInfo = `Corpus exhausted in ${exhaustionMatch[1]} years`;
-        statusColor = accentColor;
-      } else {
-        const finalBalanceMatch = reportText.match(/final balance of ₹([\d,]+)/);
-        if (finalBalanceMatch) {
-          exhaustedInfo = `Corpus sustains for full ${years} years (Final balance: ₹${finalBalanceMatch[1]})`;
-        }
-      }
+      // Extract data from the report
+      const reportDiv = document.getElementById('report');
+      const statusDiv = reportDiv.querySelector('.warning, .success');
+      const exhaustedInfo = statusDiv ? statusDiv.textContent : '';
+      const isExhausted = statusDiv && statusDiv.classList.contains('warning');
+      const tableRows = reportDiv.querySelectorAll('table tr');
 
       // Add header
       doc.setFillColor(23, 162, 184);
-      doc.rect(0, 0, 210, 20, 'F');
+      doc.rect(0, 0, pageWidth, 20, 'F');
       doc.setFontSize(16);
       doc.setTextColor(255, 255, 255);
       doc.setFont('helvetica', 'bold');
-      doc.text("SYSTEMATIC WITHDRAWAL PLAN REPORT", 105, 12, { align: 'center' });
+      doc.text("SYSTEMATIC WITHDRAWAL PLAN REPORT", pageWidth/2, 12, { align: 'center' });
 
       // Reset text color
       doc.setTextColor(0, 0, 0);
+      let y = 30; // Start position after header
 
-      // Add client info section
-      let y = 30;
+      // Client Information Section
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(23, 162, 184);
-      doc.text("Client Information", 14, y);
+      doc.text("CLIENT INFORMATION", margin, y);
       y += 7;
-
-      // Horizontal line
       doc.setDrawColor(23, 162, 184);
-      doc.setLineWidth(0.5);
-      doc.line(14, y, 196, y);
+      doc.setLineWidth(0.3);
+      doc.line(margin, y, pageWidth - margin, y);
       y += 10;
 
-      // Client details
       doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
-      doc.text("Client Name:", 20, y);
+      doc.text("Client Name:", margin, y);
       doc.setFont('helvetica', 'normal');
-      doc.text(name, 50, y);
-      y += 7;
-
+      doc.text(name, margin + 30, y);
+      
       doc.setFont('helvetica', 'bold');
-      doc.text("Report Date:", 20, y);
+      doc.text("Report Date:", pageWidth/2, y);
       doc.setFont('helvetica', 'normal');
-      doc.text(new Date().toLocaleDateString(), 50, y);
+      doc.text(new Date().toLocaleDateString(), pageWidth/2 + 30, y);
       y += 15;
 
-      // Add plan details section
+      // Plan Parameters Section
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(23, 162, 184);
-      doc.text("Plan Parameters", 14, y);
+      doc.text("PLAN PARAMETERS", margin, y);
       y += 7;
-
-      // Horizontal line
-      doc.line(14, y, 196, y);
+      doc.line(margin, y, pageWidth - margin, y);
       y += 10;
 
-      // Plan details in two columns
-      const column1 = 20;
-      const column2 = 110;
+      // Plan details in two columns with proper spacing
+      const col1 = margin;
+      const col2 = pageWidth/2 + 10;
+      const lineHeight = 7;
       
       doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
-      doc.text("Initial Corpus (₹):", column1, y);
+      doc.text("Initial Corpus (₹):", col1, y);
       doc.setFont('helvetica', 'normal');
-      doc.text(corpus.toLocaleString('en-IN'), column1 + 40, y);
+      doc.text(corpus.toLocaleString('en-IN'), col1 + 45, y);
       
       doc.setFont('helvetica', 'bold');
-      doc.text("Annual Return (%):", column2, y);
+      doc.text("Annual Return (%):", col2, y);
       doc.setFont('helvetica', 'normal');
-      doc.text(annualReturn.toFixed(2), column2 + 40, y);
-      y += 7;
+      doc.text(annualReturn.toFixed(2), col2 + 45, y);
+      y += lineHeight;
 
       doc.setFont('helvetica', 'bold');
-      doc.text("Monthly Withdrawal (₹):", column1, y);
+      doc.text("Monthly Withdrawal (₹):", col1, y);
       doc.setFont('helvetica', 'normal');
-      doc.text(withdrawal.toLocaleString('en-IN'), column1 + 40, y);
+      doc.text(withdrawal.toLocaleString('en-IN'), col1 + 45, y);
       
       doc.setFont('helvetica', 'bold');
-      doc.text("Inflation Rate (%):", column2, y);
+      doc.text("Inflation Rate (%):", col2, y);
       doc.setFont('helvetica', 'normal');
-      doc.text(inflation.toFixed(2), column2 + 40, y);
-      y += 7;
+      doc.text(inflation.toFixed(2), col2 + 45, y);
+      y += lineHeight;
 
       doc.setFont('helvetica', 'bold');
-      doc.text("Duration (Years):", column1, y);
+      doc.text("Duration (Years):", col1, y);
       doc.setFont('helvetica', 'normal');
-      doc.text(years.toString(), column1 + 40, y);
+      doc.text(years.toString(), col1 + 45, y);
       y += 15;
 
-      // Add status
+      // Status Section with proper spacing
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(statusColor === successColor ? [40, 167, 69] : [220, 53, 69]);
-      doc.text(exhaustedInfo, 14, y);
-      y += 10;
+      doc.setTextColor(isExhausted ? accentColor : successColor);
+      const statusLines = doc.splitTextToSize(exhaustedInfo, pageWidth - 2*margin);
+      doc.text(statusLines, margin, y);
+      y += (statusLines.length * lineHeight) + 10;
 
-      // Add chart
+      // Add chart with proper positioning
       const canvas = document.getElementById('corpusChart');
       const chartImg = canvas.toDataURL("image/png", 1.0);
       
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(23, 162, 184);
-      doc.text("Corpus Projection", 14, y);
+      doc.text("CORPUS PROJECTION", margin, y);
       y += 7;
-
-      // Horizontal line
-      doc.line(14, y, 196, y);
+      doc.line(margin, y, pageWidth - margin, y);
       y += 10;
 
-      doc.addImage(chartImg, 'PNG', 15, y, 180, 80);
-      y += 90;
+      // Add chart with dynamic sizing
+      const chartWidth = pageWidth - 2*margin;
+      const chartHeight = chartWidth * 0.5; // Maintain aspect ratio
+      doc.addImage(chartImg, 'PNG', margin, y, chartWidth, chartHeight);
+      y += chartHeight + 15;
 
-      // Add sample monthly data
+      // Monthly Projections Table with page breaks
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(23, 162, 184);
-      doc.text("Sample Monthly Projections", 14, y);
+      doc.text("MONTHLY PROJECTIONS", margin, y);
       y += 7;
-
-      doc.line(14, y, 196, y);
+      doc.line(margin, y, pageWidth - margin, y);
       y += 10;
 
-      // Add table headers
+      // Table headers
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
-      doc.text("Month", 20, y);
-      doc.text("Withdrawal (₹)", 60, y);
-      doc.text("Balance (₹)", 120, y);
-      y += 7;
+      doc.text("Month", margin, y);
+      doc.text("Withdrawal (₹)", margin + 30, y);
+      doc.text("Balance (₹)", margin + 90, y);
+      y += lineHeight;
 
-      // Get first 12 months data from the report
-      const reportDiv = document.getElementById('report');
-      const rows = reportDiv.querySelectorAll('table tr');
-      for (let i = 1; i < Math.min(13, rows.length); i++) {
-        const cells = rows[i].querySelectorAll('td');
-        doc.setFont('helvetica', 'normal');
-        doc.text(cells[0].textContent, 20, y);
-        doc.text(cells[1].textContent, 60, y);
-        doc.text(cells[2].textContent, 120, y);
-        y += 7;
+      // Table data with proper formatting
+      doc.setFont('helvetica', 'normal');
+      const maxRowsPerPage = Math.floor((doc.internal.pageSize.getHeight() - y - 20) / lineHeight);
+      
+      for (let i = 1; i < tableRows.length && i <= 24; i++) { // Show max 24 months
+        const cells = tableRows[i].querySelectorAll('td');
         
-        // Add new page if needed
-        if (y > 250 && i < rows.length - 1) {
+        // Check for page break
+        if (y > doc.internal.pageSize.getHeight() - 20) {
           doc.addPage();
-          y = 20;
+          y = margin;
+          // Repeat headers on new page
+          doc.setFont('helvetica', 'bold');
+          doc.text("Month", margin, y);
+          doc.text("Withdrawal (₹)", margin + 30, y);
+          doc.text("Balance (₹)", margin + 90, y);
+          y += lineHeight;
+          doc.setFont('helvetica', 'normal');
         }
+        
+        doc.text(cells[0].textContent, margin, y);
+        doc.text(cells[1].textContent, margin + 30, y);
+        doc.text(cells[2].textContent, margin + 90, y);
+        y += lineHeight;
       }
 
-      // Add footer
-      doc.setFontSize(10);
+      // Footer with proper positioning
+      const footerY = doc.internal.pageSize.getHeight() - 15;
+      doc.setFontSize(9);
       doc.setTextColor(100, 100, 100);
       doc.setFont('helvetica', 'italic');
-      doc.text("This report is generated for planning purposes only. Please consult your financial advisor before making any decisions.", 
-               105, 285, { align: 'center' });
-      doc.text("Generated on " + new Date().toLocaleString(), 105, 290, { align: 'center' });
+      doc.text("This report is generated for planning purposes only. Please consult your financial advisor.", 
+               pageWidth/2, footerY - 10, { align: 'center' });
+      doc.text("Generated on " + new Date().toLocaleString(), pageWidth/2, footerY, { align: 'center' });
 
       // Save the PDF
       doc.save('SWP_Report_' + name.replace(/\s+/g, '_') + '.pdf');
