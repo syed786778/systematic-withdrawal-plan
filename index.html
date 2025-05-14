@@ -182,48 +182,154 @@
     function downloadPDF() {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
+      
+      // Set document properties
+      doc.setProperties({
+        title: 'Systematic Withdrawal Plan Report',
+        subject: 'Financial Planning Report',
+        author: 'Wealth Management System',
+        keywords: 'SWP, withdrawal, financial planning',
+        creator: 'Wealth Management System'
+      });
 
+      // Colors
+      const primaryColor = '#17a2b8';
+      const secondaryColor = '#6c757d';
+      const accentColor = '#dc3545';
+
+      // Get values
       const name = document.getElementById('name').value;
       const corpus = parseFloat(document.getElementById('corpus').value).toLocaleString();
       const annualReturn = document.getElementById('return').value;
       const withdrawal = parseFloat(document.getElementById('withdrawal').value).toLocaleString();
       const inflation = document.getElementById('inflation').value;
       const years = document.getElementById('years').value;
-
-      const canvas = document.getElementById('corpusChart');
-      const chartImg = canvas.toDataURL("image/png", 1.0);
-
-      let y = 20;
-
-      doc.setFontSize(16);
-      doc.setFont('helvetica', 'bold');
-      doc.text("Systematic Withdrawal Plan Report", 20, y);
-      y += 10;
-
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Customer Name: ${name}`, 20, y); y += 10;
-      doc.text(`Initial Corpus: ₹ ${corpus}`, 20, y); y += 10;
-      doc.text(`Annual Return: ${annualReturn}%`, 20, y); y += 10;
-      doc.text(`Monthly Withdrawal: ₹ ${withdrawal}`, 20, y); y += 10;
-      doc.text(`Inflation Rate: ${inflation}%`, 20, y); y += 10;
-      doc.text(`Duration: ${years} years`, 20, y); y += 10;
-
       const reportText = document.getElementById('report').innerText;
       const exhaustedLine = reportText.split('\n').find(line => line.includes('Corpus exhausted'));
+
+      // Add header
+      doc.setFillColor(23, 162, 184);
+      doc.rect(0, 0, 210, 20, 'F');
+      doc.setFontSize(16);
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.text("SYSTEMATIC WITHDRAWAL PLAN REPORT", 105, 12, { align: 'center' });
+
+      // Reset text color
+      doc.setTextColor(0, 0, 0);
+
+      // Add client info section
+      let y = 30;
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(23, 162, 184);
+      doc.text("Client Information", 14, y);
+      y += 7;
+
+      // Horizontal line
+      doc.setDrawColor(23, 162, 184);
+      doc.setLineWidth(0.5);
+      doc.line(14, y, 196, y);
+      y += 10;
+
+      // Client details
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text("Client Name:", 20, y);
+      doc.setFont('helvetica', 'normal');
+      doc.text(name, 50, y);
+      y += 7;
+
+      doc.setFont('helvetica', 'bold');
+      doc.text("Report Date:", 20, y);
+      doc.setFont('helvetica', 'normal');
+      doc.text(new Date().toLocaleDateString(), 50, y);
+      y += 15;
+
+      // Add plan details section
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(23, 162, 184);
+      doc.text("Plan Parameters", 14, y);
+      y += 7;
+
+      // Horizontal line
+      doc.line(14, y, 196, y);
+      y += 10;
+
+      // Plan details in two columns
+      const column1 = 20;
+      const column2 = 110;
+      
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text("Initial Corpus (₹):", column1, y);
+      doc.setFont('helvetica', 'normal');
+      doc.text(corpus, column1 + 40, y);
+      
+      doc.setFont('helvetica', 'bold');
+      doc.text("Annual Return (%):", column2, y);
+      doc.setFont('helvetica', 'normal');
+      doc.text(annualReturn, column2 + 40, y);
+      y += 7;
+
+      doc.setFont('helvetica', 'bold');
+      doc.text("Monthly Withdrawal (₹):", column1, y);
+      doc.setFont('helvetica', 'normal');
+      doc.text(withdrawal, column1 + 40, y);
+      
+      doc.setFont('helvetica', 'bold');
+      doc.text("Inflation Rate (%):", column2, y);
+      doc.setFont('helvetica', 'normal');
+      doc.text(inflation, column2 + 40, y);
+      y += 7;
+
+      doc.setFont('helvetica', 'bold');
+      doc.text("Duration (Years):", column1, y);
+      doc.setFont('helvetica', 'normal');
+      doc.text(years, column1 + 40, y);
+      y += 15;
+
+      // Add chart
+      const canvas = document.getElementById('corpusChart');
+      const chartImg = canvas.toDataURL("image/png", 1.0);
+      
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(23, 162, 184);
+      doc.text("Corpus Projection", 14, y);
+      y += 7;
+
+      // Horizontal line
+      doc.line(14, y, 196, y);
+      y += 10;
+
+      doc.addImage(chartImg, 'PNG', 15, y, 180, 80);
+      y += 90;
+
+      // Add summary
       if (exhaustedLine) {
+        doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
-        doc.text(exhaustedLine, 20, y); y += 10;
+        doc.setTextColor(220, 53, 69); // Red color for important note
+        doc.text("Important Note:", 14, y);
+        y += 7;
+        
+        doc.setFont('helvetica', 'normal');
+        doc.text(exhaustedLine, 14, y);
+        y += 10;
       }
 
-      // Move image to new page if required
-      if (y > 100) {
-        doc.addPage();
-        y = 20;
-      }
+      // Add footer
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      doc.setFont('helvetica', 'italic');
+      doc.text("This report is generated for planning purposes only. Please consult your financial advisor before making any decisions.", 
+               105, 285, { align: 'center' });
+      doc.text("Generated on " + new Date().toLocaleString(), 105, 290, { align: 'center' });
 
-      doc.addImage(chartImg, 'PNG', 15, y + 10, 180, 80);
-      doc.save('SWP_Report.pdf');
+      // Save the PDF
+      doc.save('SWP_Report_' + name.replace(/\s+/g, '_') + '.pdf');
     }
   </script>
 </body>
